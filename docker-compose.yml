@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  sqlite-to-postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./config:/app/config # Mount configuration files
+    environment:
+      - SQLITE_DB_PATH=/app/config/sqlite.db
+      - POSTGRES_CONN_STRING=postgres://user:password@postgres:5432/dbname?sslmode=disable
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: radarr
+      POSTGRES_PASSWORD: radarr
+      POSTGRES_DB: radarr
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

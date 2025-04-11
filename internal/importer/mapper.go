@@ -1,5 +1,9 @@
 package importer
 
+import (
+    "strings" // Add this import
+)
+
 type Mapper struct{}
 
 func (m *Mapper) MapType(sqliteType string) string {

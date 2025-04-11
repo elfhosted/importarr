@@ -3,7 +3,6 @@ package importer
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -32,13 +31,15 @@ func (pw *PostgresWriter) WriteData(tableName string, data map[string]interface{
 			columns += ", "
 			values += ", "
 		}
-		columns += col
+		// Wrap column names in double quotes to preserve case
+		columns += fmt.Sprintf(`"%s"`, col)
 		values += fmt.Sprintf("$%d", i)
 		args = append(args, val)
 		i++
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, columns, values)
+	// Wrap the table name in double quotes to preserve case
+	query := fmt.Sprintf(`INSERT INTO "%s" (%s) VALUES (%s)`, tableName, columns, values)
 	_, err := pw.db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to write data to PostgreSQL: %w", err)
@@ -51,4 +52,30 @@ func (pw *PostgresWriter) Close() error {
 		return pw.db.Close()
 	}
 	return nil
+}
+
+// GetTables retrieves the list of all tables in the PostgreSQL database
+func (pw *PostgresWriter) GetTables() ([]string, error) {
+	query := `
+		SELECT table_name
+		FROM information_schema.tables
+		WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+	`
+
+	rows, err := pw.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tables: %w", err)
+	}
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			return nil, fmt.Errorf("failed to scan table name: %w", err)
+		}
+		tables = append(tables, tableName)
+	}
+
+	return tables, nil
 }
