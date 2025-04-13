@@ -51,6 +51,11 @@ func main() {
                 log.Printf("Failed to write data to table %s in PostgreSQL: %v", table, err)
             }
         }
+
+        // Update the sequence for the table
+        if err := postgresWriter.UpdateSequence(table, "Id"); err != nil {
+            log.Printf("Failed to update sequence for table %s: %v", table, err)
+        }
     }
 
     log.Println("Data import completed successfully!")

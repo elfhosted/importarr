@@ -14,7 +14,7 @@ type PostgresWriter struct {
 func (pw *PostgresWriter) OpenConnection(connStr string) error {
 	var err error
 	pw.db, err = sql.Open("postgres", connStr)
-	if err != nil {
+	if (err != nil) {
 		return fmt.Errorf("failed to open connection to PostgreSQL: %w", err)
 	}
 	return pw.db.Ping()
@@ -78,4 +78,17 @@ func (pw *PostgresWriter) GetTables() ([]string, error) {
 	}
 
 	return tables, nil
+}
+
+func (pw *PostgresWriter) UpdateSequence(tableName, columnName string) error {
+	query := fmt.Sprintf(`
+		SELECT setval(pg_get_serial_sequence('"%%s"', '%%s'), MAX("%%s") + 1)
+		FROM "%%s"
+	`, tableName, columnName, columnName, tableName)
+
+	_, err := pw.db.Exec(query)
+	if err != nil {
+		return fmt.Errorf("failed to update sequence for table %s: %w", tableName, err)
+	}
+	return nil
 }
