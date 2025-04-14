@@ -81,12 +81,15 @@ func (pw *PostgresWriter) GetTables() ([]string, error) {
 }
 
 func (pw *PostgresWriter) UpdateSequence(tableName, columnName string) error {
-	query := fmt.Sprintf(`
-		SELECT setval(pg_get_serial_sequence('"%%s"', '%%s'), MAX("%%s") + 1)
-		FROM "%%s"
-	`, tableName, columnName, columnName, tableName)
+	query := `
+        SELECT setval(
+            pg_get_serial_sequence($1, $2),
+            COALESCE(MAX($3), 1) + 1
+        )
+        FROM $4
+    `
 
-	_, err := pw.db.Exec(query)
+	_, err := pw.db.Exec(query, tableName, columnName, columnName, tableName)
 	if err != nil {
 		return fmt.Errorf("failed to update sequence for table %s: %w", tableName, err)
 	}
